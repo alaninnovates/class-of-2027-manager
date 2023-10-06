@@ -1,6 +1,6 @@
 import { MessageType } from 'discord.js';
 import { System } from '../types';
-import { log } from '../utils';
+import { log, retry } from '../utils';
 
 export default {
 	name: 'suggestions',
@@ -9,13 +9,17 @@ export default {
 			if (message.channelId !== process.env.SUGGESTION_CHANNEL_ID) return;
 			if (message.type !== MessageType.Default) return;
 			try {
-				await message.react('✅');
-				await message.react('❌');
-				await message.startThread({
-					name: 'Discussion',
-				});
-			} catch (e) {
-				log.error('suggestions', 'error handling suggestion:', e);
+				await retry(() => message.react('✅'), 'suggestions');
+				await retry(() => message.react('❌'), 'suggestions');
+				await retry(
+					() =>
+						message.startThread({
+							name: 'Discussion',
+						}),
+					'suggestions',
+				);
+			} catch (error) {
+				log.error('suggestions', error);
 			}
 		},
 	},
