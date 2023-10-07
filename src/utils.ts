@@ -1,3 +1,5 @@
+import { GuildMember, PermissionFlagsBits } from 'discord.js';
+
 export const parseCustomId = (customId: string) => {
 	const [scope, ...args] = customId.split(':');
 	return { scope, args };
@@ -9,15 +11,15 @@ export const choose = <T>(...args: T[]) => {
 
 export const log = {
 	info: (sender: string, ...args: any[]) => {
-		console.log(log.format(sender, ...args));
+		console.log(log.format(sender), ...args);
 	},
 	error: (sender: string, ...args: any[]) => {
-		console.error(log.format(sender, ...args));
+		console.error(log.format(sender), ...args);
 	},
-	format: (sender: string, ...args: any[]) => {
+	format: (sender: string) => {
 		return `${colors.blue(
 			`[${new Date().toISOString()}]`,
-		)} ${colors.magenta(`[${sender}]`)} ${args.join(' ')}`;
+		)} ${colors.magenta(`[${sender}]`)}`;
 	},
 };
 
@@ -65,4 +67,12 @@ export const colors = {
 	magenta: (str: string) => `\x1b[35m${str}\x1b[0m`,
 	cyan: (str: string) => `\x1b[36m${str}\x1b[0m`,
 	white: (str: string) => `\x1b[37m${str}\x1b[0m`,
+};
+
+export const isMod = (member: GuildMember) => {
+	const mods = getEnvArray('MOD_ROLE_IDS');
+	return (
+		member.permissions.has(PermissionFlagsBits.ManageGuild) ||
+		mods.some((id) => member.roles.cache.has(id))
+	);
 };

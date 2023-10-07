@@ -2,15 +2,12 @@ import {
 	Colors,
 	EmbedBuilder,
 	GuildMember,
-	GuildMemberRoleManager,
-	PermissionFlagsBits,
-	PermissionsBitField,
 	SlashCommandBuilder,
 	TextChannel,
 } from 'discord.js';
 import { System } from '../types';
 import Keyv from 'keyv';
-import { getEnvArray } from '../utils';
+import { isMod } from '../utils';
 import { stripIndents } from 'common-tags';
 
 interface Confession {
@@ -242,18 +239,7 @@ export default {
 					}
 				}
 			} else if (subCmdGroup === 'mod') {
-				const mods = getEnvArray('MOD_ROLE_IDS');
-				if (
-					!(
-						interaction.member
-							?.permissions as Readonly<PermissionsBitField>
-					).has(PermissionFlagsBits.ManageGuild) &&
-					!mods.some((id) =>
-						(
-							interaction.member?.roles as GuildMemberRoleManager
-						).cache.has(id),
-					)
-				) {
+				if (!isMod(interaction.member as GuildMember)) {
 					await interaction.reply({
 						content: 'You do not have permission to do this!',
 						ephemeral: true,
@@ -292,21 +278,26 @@ export default {
 								\`\`\`
 								${confession.message}
 								\`\`\`
-								Replies:
-								\`\`\`
-								${confession.replies
-									.map(
-										(reply, index) =>
-											`${index + 1}. ${
-												reply.message
-											} - ${`${
-												interaction.client.users.cache.get(
-													reply.user,
-												)?.tag ?? 'Unknown User'
-											} | ${reply.user}`}`,
-									)
-									.join('\n')}
-								\`\`\`
+								${
+									confession.replies.length > 0
+										? `
+										Replies:
+										\`\`\`
+										${confession.replies
+											.map(
+												(reply, index) =>
+													`${index + 1}. ${
+														reply.message
+													} - ${`${
+														interaction.client.users.cache.get(
+															reply.user,
+														)?.tag ?? 'Unknown User'
+													} | ${reply.user}`}`,
+											)
+											.join('\n')}
+										\`\`\``
+										: ''
+								}
 								`,
 									)
 									.setColor(Colors.Blue),
@@ -317,11 +308,17 @@ export default {
 					case 'ban': {
 						const user = interaction.options.getUser('user', true);
 						await confessionBanDb.set(user.id, true);
+						await interaction.reply({
+							content: `Banned ${user.tag} from using the confession system!`,
+						});
 						break;
 					}
 					case 'unban': {
 						const user = interaction.options.getUser('user', true);
 						await confessionBanDb.delete(user.id);
+						await interaction.reply({
+							content: `Unbanned ${user.tag} from using the confession system!`,
+						});
 						break;
 					}
 				}
