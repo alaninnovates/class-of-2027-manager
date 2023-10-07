@@ -1,8 +1,14 @@
 import 'dotenv/config';
 import { promises as fs } from 'fs';
-import { Client, Events, GatewayIntentBits, Partials } from 'discord.js';
+import {
+	Client,
+	Events,
+	GatewayIntentBits,
+	Partials,
+	Routes,
+} from 'discord.js';
 import { System } from './types';
-import { log } from './utils';
+import { getProgramArguments, log } from './utils';
 
 const client = new Client({
 	intents: [
@@ -29,12 +35,39 @@ const loadSystems = async () => {
 	}
 };
 
+// todo: not working
+const eventErrorWrapper = (
+	systemName: string,
+	handler: (...args: any[]) => Promise<void>,
+) => {
+	return (...args: any[]) => {
+		handler(...args).catch((err) => {
+			log.error(systemName, `Error: ${err.stack}`);
+		});
+	};
+};
+
 client.once(Events.ClientReady, async (c) => {
+	const programArgs = getProgramArguments();
+	if (programArgs.includes('--register-cmds')) {
+		log.info('bot', 'Registering slash commands');
+		const cmdArrJson = [];
+		for (const system of systems) {
+			if (!system.commands) continue;
+			for (const command of system.commands) {
+				cmdArrJson.push(command.toJSON());
+			}
+		}
+		await c.rest.put(Routes.applicationCommands(c.user!.id), {
+			body: cmdArrJson,
+		});
+		log.info('bot', `Registered ${cmdArrJson.length} slash commands`);
+	}
 	for (const system of systems) {
 		log.info('bot', `Loading system ${system.name}`);
 		if (system.init) system.init(client);
 		for (const [event, handler] of Object.entries(system.events)) {
-			client.on(event, handler);
+			client.on(event, eventErrorWrapper(system.name, handler));
 		}
 	}
 	log.info('bot', `Ready! Logged in as ${c.user?.tag}`);
