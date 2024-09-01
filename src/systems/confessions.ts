@@ -280,8 +280,7 @@ export default {
 								\`\`\`
 								${
 									confession.replies.length > 0
-										? `
-										Replies:
+										? `Replies:
 										\`\`\`
 										${confession.replies
 											.map(

@@ -22,6 +22,8 @@ const handleCount = async (
 	authorId: string,
 	reason: string,
 ) => {
+	// disable it
+	return;
 	const existing = await countingStrikeDb.get(authorId);
 	const member = await (
 		await client.guilds.fetch(process.env.GUILD_ID!)
